@@ -22,9 +22,55 @@ uint8_t ArcadeDrive::needs() {
 }
 bool ArcadeDrive::run(Scheduler* scheduler) {
   DSInterface* ds = scheduler->get_subsystem<DSInterface>(DSINTERFACE_ID);
-  double x = map(ds->driverStation.gamepad1.axis[0] * 1.0, -127.0, 127.0, -1.0, 1.0);
-  double y = map(ds->driverStation.gamepad1.axis[1] * -1.0, -127.0, 127.0, -1.0, 1.0);
-  scheduler->get_subsystem<Drivetrain>(DRIVETRAIN_ID)->arcade(y, x, true);
+  double turn = map(ds->driverStation.gamepad1.axis[0] * 1.0, -127.0, 127.0, -1.0, 1.0);
+  double forward = map(ds->driverStation.gamepad1.axis[1] * -1.0, -127.0, 127.0, -1.0, 1.0);
+
+  // Calculate arcade drive -> tank drive mapping
+#ifdef ARCADE_SQUARE
+  if (forward < 0) { forward *= -forward; }
+  else { forward *= forward; }
+  if (turn < 0) { turn *= -turn; }
+  else { turn *= turn; }
+#endif
+
+#ifdef ARCADE_PRESERVE_MAX_INPUT
+  double maxInput = max(forward, turn);
+#else
+  double maxInput = forward;
+#endif
+
+  double left;
+  double right;
+
+  if (forward >= 0) {
+    if (turn >= 0) {
+      // I
+      left = maxInput;
+      right = forward - turn;
+    }
+    else {
+      // II
+      left = forward + turn;
+      right = maxInput;
+    }
+  }
+  else {
+    if (turn >= 0) {
+      // III
+      left = forward + turn;
+      right = maxInput;
+    }
+    else {
+      // IV
+      left = maxInput;
+      right = forward - turn;
+    }
+  }
+
+  left = clamp(left, -1.0, 1.0);
+  right = clamp(right, -1.0, 1.0);
+
+  scheduler->get_subsystem<Drivetrain>(DRIVETRAIN_ID)->setPower(left, right);
   return false; // Never done
 }
 
@@ -42,11 +88,11 @@ bool Logger::run(Scheduler* scheduler) {
     Serial.print("DS: ");
     DSInterface* ds = scheduler->get_subsystem<DSInterface>(DSINTERFACE_ID);
     signed char* axis = ds->driverStation.gamepad1.axis;
-    for (int a = 0; a < 5; a++) {
+    for (int a = 0; a < 6; a++) {
       Serial.print(a);
       Serial.print(": ");
       Serial.print(axis[a]);
-      Serial.print(" ");
+      Serial.println();
     }
     /**
      * Line tracker

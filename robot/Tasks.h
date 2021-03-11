@@ -10,6 +10,7 @@ class DSPoll : public Task {
   DSPoll() { name = "DSPoll"; }
 };
 
+#define ARCADE_SQUARE
 class ArcadeDrive : public Task {
   uint8_t needs ();
   bool    run   (Scheduler*);

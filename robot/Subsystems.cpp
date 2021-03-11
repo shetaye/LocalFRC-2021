@@ -107,54 +107,6 @@ void Drivetrain::setup () {
   setPower(0.0, 0.0);
 }
 
-// "Turn" is -1.0 (left) to +1.0 (right)
-// Similarily, "forward" is -1.0 (backward) to +1.0 (forward)
-void Drivetrain::arcade(double forward, double turn, bool squareInputs) {
-
-  if (squareInputs) {
-    if (forward < 0) { forward *= -forward; }
-    else { forward *= forward; }
-    if (turn < 0) { turn *= -turn; }
-    else { turn *= turn; }
-  }
-
-  // (Ignore this) Preserve max input so a hard bank will still cause a significant response
-  //double maxInput = max(forward, turn);
-  double maxInput = forward;
-  double left;
-  double right;
-
-  if (forward >= 0) {
-    if (turn >= 0) {
-      // I
-      left = maxInput;
-      right = forward - turn;
-    }
-    else {
-      // II
-      left = forward + turn;
-      right = maxInput;
-    }
-  }
-  else {
-    if (turn >= 0) {
-      // III
-      left = forward + turn;
-      right = maxInput;
-    }
-    else {
-      // IV
-      left = maxInput;
-      right = forward - turn;
-    }
-  }
-
-  left = clamp(left, -1.0, 1.0);
-  right = clamp(right, -1.0, 1.0);
-
-  setPower(left, right);
-}
-
 // "Power" is -1.0 to +1.0
 // This is equivalent to the WPILib TankDrive mode
 void Drivetrain::setPower(double left, double right) {

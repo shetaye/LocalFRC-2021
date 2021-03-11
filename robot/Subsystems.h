@@ -29,7 +29,6 @@ class Subsystem {
 class Drivetrain: public Subsystem {
   public:
     void setup         ();
-    void arcade        (double forward, double turn, bool squareInputs);
     void setPower      (double left, double right);
     void setPower      (int side, double power);
   private:
