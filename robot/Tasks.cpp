@@ -13,6 +13,25 @@ bool DSPoll::run(Scheduler* scheduler) {
   scheduler->get_subsystem<DSInterface>(DSINTERFACE_ID)->poll();
   return false; // Never done
 }
+/**
+ * ServoSweep
+ */
+uint8_t ServoSweep::needs() {
+  return SERVOBLOCK;
+}
+
+bool ServoSweep::run(Scheduler* scheduler) {
+  ServoBlock* servo = scheduler->get_subsystem<ServoBlock>(SERVOBLOCK_ID);
+  for (int i = 0; i < 1; i++) {
+    if ((int)scheduler->time % 1000 == 0) {
+      servo->set_angle(i, 180);
+    }
+    if ((int)scheduler->time % 1000 == 500) {
+      servo->set_angle(i, 0);
+    }
+  }
+  return false;
+}
 
 /**
  * ArcadeDrive

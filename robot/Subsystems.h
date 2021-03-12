@@ -1,6 +1,7 @@
 #include <stdint.h>
 #include "DSState.h"
 #include "DSProtocol.h"
+#include "Adafruit_PWMServoDriver.h"
 
 #ifndef SUBSYSTEMS_H
 #define SUBSYSTEMS_H
@@ -8,14 +9,24 @@
 #define DRIVETRAIN_ID  1
 #define LINETRACKER_ID 2
 #define DSINTERFACE_ID 3
+#define SERVOBLOCK_ID  4
 
 #define DRIVETRAIN  (1 << DRIVETRAIN_ID)
 #define LINETRACKER (1 << LINETRACKER_ID)
 #define DSINTERFACE (1 << DSINTERFACE_ID)
+#define SERVOBLOCK  (1 << SERVOBLOCK_ID)
 
 class Subsystem {
   public:
     virtual void setup ();
+};
+
+class ServoBlock: public Subsystem {
+  public:
+    void setup     ();
+    void set_angle (int servo, int angle);
+  private:
+    Adafruit_PWMServoDriver pwm;
 };
 
 #define FORWARD 0

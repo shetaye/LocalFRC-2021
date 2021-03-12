@@ -4,6 +4,26 @@
 #include "pins.h"
 #include "DSState.h"
 #include "DSProtocol.h"
+#include "Adafruit_PWMServoDriver.h"
+
+/**
+ * ServoBlock
+ */
+#define SERVOMIN  250 // This is the 'minimum' pulse length count (out of 4096)
+#define SERVOMAX  420 // This is the 'maximum' pulse length count (out of 4096)
+#define SERVO_FREQ 50 // Analog servos run at ~50 Hz updates
+void ServoBlock::setup () {
+  pwm = Adafruit_PWMServoDriver();
+  pwm.begin();
+  pwm.setPWMFreq(SERVO_FREQ);
+  delay(10);
+}
+
+void ServoBlock::set_angle (int servo, int angle) {
+  uint16_t pulselength = map(angle, 0, 180, SERVOMIN, SERVOMAX);
+  Serial.println(angle);
+  pwm.setPWM(servo, 0, pulselength);
+}
 
 /**
  * DSInterface

@@ -10,6 +10,13 @@ class DSPoll : public Task {
   DSPoll() { name = "DSPoll"; }
 };
 
+class ServoSweep : public Task {
+  uint8_t needs ();
+  bool    run   (Scheduler*);
+  public:
+  ServoSweep() { name = "Servo Sweep"; }
+};
+
 #define ARCADE_SQUARE
 class ArcadeDrive : public Task {
   uint8_t needs ();
