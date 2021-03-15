@@ -48,10 +48,6 @@ class Drivetrain: public Subsystem {
     int speed;
 };
 
-#define LEFT 1
-#define RIGHT 4
-#define CENTER 2
-
 class Linetracker: public Subsystem {
   public:
     void setup  ();
