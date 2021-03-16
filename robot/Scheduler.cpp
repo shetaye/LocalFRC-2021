@@ -17,7 +17,7 @@ int Scheduler::schedule (Task* task) {
       Serial.print("Queued ");
       Serial.println(task->name);
       task->id=i;
-      task->status=QUEUED;
+      task->status=TASK_QUEUED;
       task_queue[i] = task;
       return i;
     }
@@ -29,7 +29,7 @@ void Scheduler::kill (Task* task) {
   int tid = task->id;
   if (tasks[tid] != NULL) {
     tasks[tid] = NULL;
-    tasks[tid]->status = KILLED;
+    tasks[tid]->status = TASK_KILLED;
     busy = busy & ~tasks[tid]->needs();
   }
 }
@@ -50,7 +50,7 @@ void Scheduler::run () {
           // Add to running
           tasks[k] = task;
           // Update status
-          task->status = RUNNING;
+          task->status = TASK_RUNNING;
           task->started = millis();
           // Remove from queue
           task_queue[i] = NULL;
@@ -75,7 +75,7 @@ void Scheduler::run () {
         // status info
         Serial.print("Finished ");
         Serial.println(task->name);
-        task->status = FINISHED;
+        task->status = TASK_FINISHED;
         tasks[i] = NULL;
         busy = busy & ~task->needs();
       }

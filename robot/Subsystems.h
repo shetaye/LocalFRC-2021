@@ -1,4 +1,5 @@
 #include <stdint.h>
+#include "Scheduler.h"
 #include "DSState.h"
 #include "DSProtocol.h"
 #include "Adafruit_PWMServoDriver.h"
@@ -16,10 +17,6 @@
 #define DSINTERFACE (1 << DSINTERFACE_ID)
 #define SERVOBLOCK  (1 << SERVOBLOCK_ID)
 
-class Subsystem {
-  public:
-    virtual void setup ();
-};
 
 class ServoBlock: public Subsystem {
   public:

@@ -2,19 +2,19 @@
 #define SCHEDULER_H
 
 #include <stdint.h>
-#include "Subsystems.h"
 #include <Arduino.h>
 
 #define MAX_TASKS_RUNNING 16
 #define MAX_TASKS_QUEUED  32
 
-#define QUEUED 0
-#define RUNNING 1
-#define FINISHED 2
-#define KILLED 3
+#define TASK_QUEUED 0
+#define TASK_RUNNING 1
+#define TASK_FINISHED 2
+#define TASK_KILLED 3
 
 // TODO: Make task queue an ACTUAl queue
 class Task; // Forward decl
+class Subsystem; // Forward decl
 class Scheduler {
   public:
     // Tasks
@@ -45,6 +45,13 @@ class Task {
     virtual uint8_t needs ();
     virtual bool    run   (Scheduler*);
 };
+
+class Subsystem {
+  public:
+    // Virtual members
+    virtual void setup ();
+};
+
 
 template <class T> T* Scheduler::get_subsystem (int sid) {
   return static_cast<T*>(subsystems[sid]);
