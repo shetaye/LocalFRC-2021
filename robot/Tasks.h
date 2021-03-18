@@ -17,6 +17,13 @@ class ServoSweep : public Task {
   ServoSweep() { name = "Servo Sweep"; }
 };
 
+class TiltDrive : public Task {
+  uint8_t needs ();
+  bool    run   (Scheduler*);
+  public:
+  TiltDrive() { name = "Tilt Drive"; }
+};
+
 #define ARCADE_SQUARE
 class ArcadeDrive : public Task {
   uint8_t needs ();

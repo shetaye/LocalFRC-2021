@@ -22,14 +22,37 @@ uint8_t ServoSweep::needs() {
 
 bool ServoSweep::run(Scheduler* scheduler) {
   ServoBlock* servo = scheduler->get_subsystem<ServoBlock>(SERVOBLOCK_ID);
-  for (int i = 0; i < 1; i++) {
-    if ((int)scheduler->time % 1000 == 0) {
-      servo->set_angle(i, 180);
-    }
-    if ((int)scheduler->time % 1000 == 500) {
-      servo->set_angle(i, 0);
-    }
-  }
+  int angle = (int)(scheduler->time / 50) % 180;
+  if (angle > 90) { angle = 180 - angle; }
+  servo->set_angle(0, angle * 2);
+  return false;
+}
+
+/**
+ * TiltDrive
+ */
+uint8_t TiltDrive::needs() {
+  return DRIVETRAIN;
+}
+
+bool TiltDrive::run(Scheduler* scheduler) {
+  DSInterface* ds = scheduler->get_subsystem<DSInterface>(DSINTERFACE_ID);
+  double lt = map(ds->driverStation.gamepad1.axis[4] * 1.0, -127.0, 127.0, 0.0, 1.0);
+  double rt = map(ds->driverStation.gamepad1.axis[5] * 1.0, -127.0, 127.0, 0.0, 1.0);
+
+  double slope = rt - lt;
+  double power = (rt - lt) / 2 - 0.5;
+
+  if (power < 0) power = 0;
+
+  Serial.println(slope);
+  Serial.println(power);
+
+  double right = slope + power;
+  double left = -slope + power;
+
+  scheduler->get_subsystem<Drivetrain>(DRIVETRAIN_ID)->setPower(left, right);
+
   return false;
 }
 
@@ -144,7 +167,7 @@ bool Autonomous::run(Scheduler* scheduler) {
         // Start task if not started
         subtask = new ForwardUntilLine;
         scheduler->schedule(subtask);
-      } else if (subtask->status == FINISHED) {
+      } else if (subtask->status == TASK_FINISHED) {
         delete subtask;
         subtask = NULL;
         state = AUTO_ORIENT;
@@ -154,7 +177,7 @@ bool Autonomous::run(Scheduler* scheduler) {
       if (subtask == NULL) {
         subtask = new Orient;
         scheduler->schedule(subtask);
-      } else if (subtask->status == FINISHED) {
+      } else if (subtask->status == TASK_FINISHED) {
         delete subtask;
         state = AUTO_COMPLETE;
       }

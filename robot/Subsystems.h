@@ -21,7 +21,7 @@
 class ServoBlock: public Subsystem {
   public:
     void setup     ();
-    void set_angle (int servo, int angle);
+    void set_angle (int servo, uint32_t angle);
   private:
     Adafruit_PWMServoDriver pwm;
 };

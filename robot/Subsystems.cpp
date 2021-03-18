@@ -9,8 +9,8 @@
 /**
  * ServoBlock
  */
-#define SERVOMIN  250 // This is the 'minimum' pulse length count (out of 4096)
-#define SERVOMAX  420 // This is the 'maximum' pulse length count (out of 4096)
+#define SERVOMIN  120
+#define SERVOMAX  500
 #define SERVO_FREQ 50 // Analog servos run at ~50 Hz updates
 void ServoBlock::setup () {
   pwm = Adafruit_PWMServoDriver();
@@ -19,10 +19,12 @@ void ServoBlock::setup () {
   delay(10);
 }
 
-void ServoBlock::set_angle (int servo, int angle) {
-  uint16_t pulselength = map(angle, 0, 180, SERVOMIN, SERVOMAX);
-  Serial.println(angle);
-  pwm.setPWM(servo, 0, pulselength);
+void ServoBlock::set_angle (int servo, uint32_t angle) {
+  uint32_t pl = map(angle, 0, 180, SERVOMIN, SERVOMAX);
+  Serial.println((SERVOMAX-SERVOMIN));
+  Serial.println((angle-0));
+  Serial.println((angle-0)*(SERVOMAX-SERVOMIN));
+  pwm.setPin(servo, pl);
 }
 
 /**
