@@ -13,32 +13,40 @@ void setup() {
   DSInterface  ds_interface;
   Linetracker linetracker;
   ServoBlock servo_block;
+  Elevator elevator;
+  Grabber grabber;
   // Register subsystems
   ds_interface.setup();
   scheduler.register_subsystem(&ds_interface, DSINTERFACE_ID);
-  Serial.println("Registered Driverstation Interface");
+  // Serial.println("Registered Driverstation Interface");
   drivetrain.setup();
   scheduler.register_subsystem(&drivetrain, DRIVETRAIN_ID);
-  Serial.println("Registered Drivetrain");
+  // Serial.println("Registered Drivetrain");
   linetracker.setup();
   scheduler.register_subsystem(&linetracker, LINETRACKER_ID);
-  Serial.println("Registered Linetracker");
+  // Serial.println("Registered Linetracker");
   servo_block.setup();
-  scheduler.register_subsystem(&servo_block, SERVOBLOCK_ID);
-  Serial.println("Registered Servo Block");
-  Serial.println("Registered subsystems");
+  elevator.setup(&servo_block);
+  grabber.setup(&servo_block);
+  //scheduler.register_subsystem(&servo_block, SERVOBLOCK_ID);
+  scheduler.register_subsystem(&elevator, ELEVATOR_ID);
+  scheduler.register_subsystem(&grabber, GRABBER_ID);
+  // Serial.println("Registered Servo Block");
+  // Serial.println("Registered subsystems");
   // Start long running tasks
   DSPoll dspoll;
   scheduler.schedule(&dspoll);
-  //ArcadeDrive arcade_drive;
-  //scheduler.schedule(&arcade_drive);
+  ArcadeDrive arcade_drive;
+  scheduler.schedule(&arcade_drive);
   //TiltDrive tilt_drive;
   //scheduler.schedule(&tilt_drive);
-  ServoSweep servo;
-  scheduler.schedule(&servo);
+  Manipulate manipulate;
+  scheduler.schedule(&manipulate);
+  //Drive drive;
+  //scheduler.schedule(&drive);
   Logger logger;
   scheduler.schedule(&logger);
-  Serial.println("Initialized");
+  // Serial.println("Initialized");
 }
 
 void loop() {

@@ -9,5 +9,8 @@
 #define P_LEFT 2
 #define P_CENTER 4
 #define P_RIGHT 10
+// PWM
+#define P_ELEVATOR 0
+#define P_GRABBER 1
 
 

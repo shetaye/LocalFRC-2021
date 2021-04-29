@@ -10,11 +10,18 @@ class DSPoll : public Task {
   DSPoll() { name = "DSPoll"; }
 };
 
-class ServoSweep : public Task {
+#define GRABBER_VELOCITY 1.f
+#define MANIPULATE_UPDATE_FREQ 100
+class Manipulate : public Task {
   uint8_t needs ();
   bool    run   (Scheduler*);
+
+  double  last_update;
   public:
-  ServoSweep() { name = "Servo Sweep"; }
+  Manipulate() {
+    last_update = 0;
+    name = "Manipulate";
+  }
 };
 
 class TiltDrive : public Task {
@@ -25,11 +32,29 @@ class TiltDrive : public Task {
 };
 
 #define ARCADE_SQUARE
+//#define ARCADE_PRESERVE_MAX_INPUT
 class ArcadeDrive : public Task {
   uint8_t needs ();
   bool    run   (Scheduler*);
   public:
   ArcadeDrive() { name = "Arcade Drive"; }
+};
+
+enum DriveMode {
+  Off    = 0,
+  Arcade = 1,
+  Tilt   = 2
+};
+class Drive : public Task {
+  uint8_t needs ();
+  bool    run   (Scheduler*);
+
+  double      last_press;
+  DriveMode   current_mode;
+  TiltDrive   tilt;
+  ArcadeDrive arcade;
+  public:
+  Drive() { name = "Drive"; current_mode = DriveMode::Off; }
 };
 
 class Logger : public Task {

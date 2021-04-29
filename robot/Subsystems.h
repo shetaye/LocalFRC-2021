@@ -10,13 +10,14 @@
 #define DRIVETRAIN_ID  1
 #define LINETRACKER_ID 2
 #define DSINTERFACE_ID 3
-#define SERVOBLOCK_ID  4
+#define ELEVATOR_ID    4
+#define GRABBER_ID     5
 
 #define DRIVETRAIN  (1 << DRIVETRAIN_ID)
 #define LINETRACKER (1 << LINETRACKER_ID)
 #define DSINTERFACE (1 << DSINTERFACE_ID)
-#define SERVOBLOCK  (1 << SERVOBLOCK_ID)
-
+#define ELEVATOR    (1 << ELEVATOR_ID)
+#define GRABBER     (1 << GRABBER_ID)
 
 class ServoBlock: public Subsystem {
   public:
@@ -24,6 +25,51 @@ class ServoBlock: public Subsystem {
     void set_angle (int servo, uint32_t angle);
   private:
     Adafruit_PWMServoDriver pwm;
+};
+
+#define ELEVATOR_MIN_ANGLE 0
+#define ELEVATOR_MAX_ANGLE 180
+#define DRIVER_RADIUS 1
+#define DRIVER_VELOCITY 1
+#define DAMPING_FACTOR 0.1
+enum ElevatorDirection {
+  Up,
+  Down,
+  Hold
+};
+class Elevator: public Subsystem {
+  public:
+    void  setup               (ServoBlock* servos);
+    void  tick                (float delta);
+    void  set_height          (float height);
+    float get_height          ();
+    float get_error           ();
+    float get_inferred_height ();
+    void  set_direction (ElevatorDirection direction);
+  private:
+    float h;
+    float h_hat;
+    float error;
+    float a_vel;
+    ElevatorDirection dir;
+    ServoBlock* sb;
+};
+
+#define GRABBER_MIN_ANGLE 30
+#define GRABBER_MAX_ANGLE 120
+class Grabber: public Subsystem {
+  public:
+    void  setup      (ServoBlock* servos);
+    void  set_grip   (float grip);
+    float get_grip   ();
+    bool  is_gripped ();
+    void  open       ();
+    void  close      ();
+    void  toggle     ();
+  private:
+    float g;
+    ServoBlock* sb;
+
 };
 
 #define FORWARD 0
@@ -55,23 +101,16 @@ class Linetracker: public Subsystem {
     bool any    ();
 };
 
-enum ControlState { Idle, Auto, Teleop };
-
 class DSInterface: public Subsystem {
   public:
     void setup();
     void poll();
-    ControlState getControlState();
-    DriverStation driverStation;
-
-  private:
-    // Protocol Specific
-    char protocolBuffer[64];
-    bool waitUntilMessageStart (int packetDelay);
-
-    ControlState controlState;
-    double x;
-    double y;
+    float get_first_axis(GamepadAxis axis);
+    bool get_first_button(GamepadButton button);
+    float get_second_axis(GamepadAxis axis);
+    bool get_second_button(GamepadButton button);
+    DSProtocol protocol;
+    bool new_packet;
 };
 
 #endif

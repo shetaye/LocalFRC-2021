@@ -47,9 +47,9 @@ class Task {
 };
 
 class Subsystem {
-  public:
-    // Virtual members
-    virtual void setup ();
+  //public:
+  // Virtual members
+  //virtual void setup ();
 };
 
 

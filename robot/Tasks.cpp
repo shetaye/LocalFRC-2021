@@ -1,4 +1,5 @@
 #include "Tasks.h"
+#include "DSState.h"
 #include <Arduino.h>
 #include "Subsystems.h"
 #include "util.h"
@@ -13,18 +14,48 @@ bool DSPoll::run(Scheduler* scheduler) {
   scheduler->get_subsystem<DSInterface>(DSINTERFACE_ID)->poll();
   return false; // Never done
 }
+
 /**
- * ServoSweep
+ * Manipulate
  */
-uint8_t ServoSweep::needs() {
-  return SERVOBLOCK;
+uint8_t Manipulate::needs() {
+  return ELEVATOR & GRABBER;
 }
 
-bool ServoSweep::run(Scheduler* scheduler) {
-  ServoBlock* servo = scheduler->get_subsystem<ServoBlock>(SERVOBLOCK_ID);
-  int angle = (int)(scheduler->time / 50) % 180;
-  if (angle > 90) { angle = 180 - angle; }
-  servo->set_angle(0, angle * 2);
+bool Manipulate::run(Scheduler* scheduler) {
+  DSInterface* ds = scheduler->get_subsystem<DSInterface>(DSINTERFACE_ID);
+  Elevator* elevator = scheduler->get_subsystem<Elevator>(ELEVATOR_ID);
+  Grabber* grabber = scheduler->get_subsystem<Grabber>(GRABBER_ID);
+
+  int delta = 1000 / MANIPULATE_UPDATE_FREQ;
+  if (last_update + delta <= scheduler->time) {
+    // Move grabber around
+    float grip_axis = ds->get_first_axis(2);
+    float current_g = grabber->get_grip();
+    float update_magnitude = GRABBER_VELOCITY * (delta / 1000.f);
+    if (grip_axis > 0.5f) {
+      grabber->set_grip(current_g + update_magnitude);
+    }
+    if (grip_axis < -0.5f) {
+      grabber->set_grip(current_g - update_magnitude);
+    }
+    last_update = scheduler->time;
+    // Update elvator
+    float actual_delta = (scheduler->time - last_update) / 1000.;
+    //elevator->tick(actual_delta);
+  }
+
+  // Move elevator around
+  float elevator_axis = ds->get_first_axis(3);
+  if (elevator_axis > 0.5) {
+    elevator->set_direction(ElevatorDirection::Up);
+  }
+  else if (elevator_axis < -0.5) {
+    elevator->set_direction(ElevatorDirection::Down);
+  }
+  else {
+    elevator->set_direction(ElevatorDirection::Hold);
+  }
   return false;
 }
 
@@ -37,19 +68,17 @@ uint8_t TiltDrive::needs() {
 
 bool TiltDrive::run(Scheduler* scheduler) {
   DSInterface* ds = scheduler->get_subsystem<DSInterface>(DSINTERFACE_ID);
-  double lt = map(ds->driverStation.gamepad1.axis[4] * 1.0, -127.0, 127.0, 0.0, 1.0);
-  double rt = map(ds->driverStation.gamepad1.axis[5] * 1.0, -127.0, 127.0, 0.0, 1.0);
 
-  double slope = rt - lt;
-  double power = (rt - lt) / 2 - 0.5;
+  float lt = map(ds->get_first_axis(5), 1.0f, -1.0f, 0.0f, 1.0f);
+  float rt = map(ds->get_first_axis(4), 1.0f, -1.0f, 0.0f, 1.0f);
 
+
+  float slope = rt - lt;
+  float power = (rt + lt) / 2 - 0.5f;
   if (power < 0) power = 0;
 
-  Serial.println(slope);
-  Serial.println(power);
-
-  double right = slope + power;
-  double left = -slope + power;
+  float right = -slope + power;
+  float left = slope + power;
 
   scheduler->get_subsystem<Drivetrain>(DRIVETRAIN_ID)->setPower(left, right);
 
@@ -64,8 +93,8 @@ uint8_t ArcadeDrive::needs() {
 }
 bool ArcadeDrive::run(Scheduler* scheduler) {
   DSInterface* ds = scheduler->get_subsystem<DSInterface>(DSINTERFACE_ID);
-  double turn = map(ds->driverStation.gamepad1.axis[0] * 1.0, -127.0, 127.0, -1.0, 1.0);
-  double forward = map(ds->driverStation.gamepad1.axis[1] * -1.0, -127.0, 127.0, -1.0, 1.0);
+  float turn    = map(ds->get_first_axis(GamepadAxis::LeftX) * -1.0f, -1.0f, 1.0f, -1.0f, 1.0f);
+  float forward = map(ds->get_first_axis(GamepadAxis::LeftY) * +1.0f, -1.0f, 1.0f, -1.0f, 1.0f);
 
   // Calculate arcade drive -> tank drive mapping
 #ifdef ARCADE_SQUARE
@@ -76,44 +105,77 @@ bool ArcadeDrive::run(Scheduler* scheduler) {
 #endif
 
 #ifdef ARCADE_PRESERVE_MAX_INPUT
-  double maxInput = max(forward, turn);
+  float maxInput = max(forward, turn);
 #else
-  double maxInput = forward;
+  float maxInput = forward;
 #endif
 
-  double left;
-  double right;
+  float left;
+  float right;
 
-  if (forward >= 0) {
-    if (turn >= 0) {
+  if (forward >= 0.0f) {
+    if (turn >= 0.0f) {
       // I
-      left = maxInput;
+      left = maxInput + turn;
       right = forward - turn;
     }
     else {
       // II
       left = forward + turn;
-      right = maxInput;
+      right = maxInput - turn;
     }
   }
   else {
-    if (turn >= 0) {
+    if (turn >= 0.0f) {
       // III
       left = forward + turn;
-      right = maxInput;
+      right = maxInput - turn;
     }
     else {
       // IV
-      left = maxInput;
+      left = maxInput + turn;
       right = forward - turn;
     }
   }
 
-  left = clamp(left, -1.0, 1.0);
-  right = clamp(right, -1.0, 1.0);
+  left = clamp(left, -1.0f, 1.0f);
+  right = clamp(right, -1.0f, 1.0f);
 
   scheduler->get_subsystem<Drivetrain>(DRIVETRAIN_ID)->setPower(left, right);
   return false; // Never done
+}
+
+uint8_t Drive::needs() {
+  return 0; // Needs nothing
+}
+
+bool Drive::run(Scheduler* scheduler) {
+  DSInterface* ds = scheduler->get_subsystem<DSInterface>(DSINTERFACE_ID);
+
+  if (last_press + 500 <= scheduler->time) {
+    // Respond to button
+    if (ds->get_first_button(4)) {
+      if (current_mode == DriveMode::Off) current_mode = DriveMode::Arcade;
+      if (current_mode == DriveMode::Arcade) current_mode = DriveMode::Tilt;
+      if (current_mode == DriveMode::Tilt) current_mode = DriveMode::Off;
+    }
+    switch(current_mode) {
+      case DriveMode::Off:
+        scheduler->kill(&arcade);
+        scheduler->kill(&tilt);
+        // Briefly violate the needs system
+        scheduler->get_subsystem<Drivetrain>(DRIVETRAIN_ID)->setPower(0., 0.);
+        break;
+      case DriveMode::Arcade:
+        scheduler->kill(&tilt);
+        scheduler->schedule(&arcade);
+        break;
+      case DriveMode::Tilt:
+        scheduler->kill(&arcade);
+        scheduler->schedule(&tilt);
+        break;
+    }
+  }
 }
 
 /**
@@ -129,22 +191,19 @@ bool Logger::run(Scheduler* scheduler) {
      */
     Serial.print("DS: ");
     DSInterface* ds = scheduler->get_subsystem<DSInterface>(DSINTERFACE_ID);
-    signed char* axis = ds->driverStation.gamepad1.axis;
-    for (int a = 0; a < 6; a++) {
+    /*for (int a = 0; a < 6; a++) {
       Serial.print(a);
       Serial.print(": ");
       Serial.print(axis[a]);
       Serial.println();
-    }
-    /**
-     * Line tracker
-     */
+      }*/
+    Serial.println(ds->get_first_axis(4));
+    /* Line tracker */
     Serial.print(" LT: ");
     Linetracker* linetracker = scheduler->get_subsystem<Linetracker>(LINETRACKER_ID);
     Serial.print(linetracker->left());
     Serial.print(linetracker->center());
     Serial.println(linetracker->right());
-
     last_message = scheduler->time;
   }
   return false; // Never done
@@ -155,7 +214,7 @@ bool Logger::run(Scheduler* scheduler) {
  * Autonomous
  * ==========
  */
-#define AUTO_MOVE_SPEED 0.4
+#define AUTO_MOVE_SPEED 0.4f
 uint8_t Autonomous::needs() {
   return 0; // Just a coordinator, doesn't touch anything
 }
@@ -198,7 +257,7 @@ bool ForwardUntilLine::run(Scheduler* scheduler) {
   Linetracker* tracker = scheduler->get_subsystem<Linetracker>(LINETRACKER_ID);
   Drivetrain* drivetrain = scheduler->get_subsystem<Drivetrain>(DRIVETRAIN_ID);
   if (tracker->any()) {
-    drivetrain->setPower(0.0, 0.0);
+    drivetrain->setPower(0.0f, 0.0f);
     Serial.println("Stopped");
     return true;
   } else {

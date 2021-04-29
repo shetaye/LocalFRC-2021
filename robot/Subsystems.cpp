@@ -21,98 +21,123 @@ void ServoBlock::setup () {
 
 void ServoBlock::set_angle (int servo, uint32_t angle) {
   uint32_t pl = map(angle, 0, 180, SERVOMIN, SERVOMAX);
-  Serial.println((SERVOMAX-SERVOMIN));
-  Serial.println((angle-0));
-  Serial.println((angle-0)*(SERVOMAX-SERVOMIN));
   pwm.setPin(servo, pl);
 }
 
 /**
+ * Elevator
+ */
+void Elevator::setup (ServoBlock* servos) {
+  sb = servos;
+}
+
+void Elevator::set_height (float height) {
+}
+
+float Elevator::get_height () {
+  return h;
+}
+
+float Elevator::get_error () {
+  return error;
+}
+
+float Elevator::get_inferred_height () {
+  return h_hat;
+}
+
+void Elevator::tick (float delta) {
+  // Calculate error
+  error = h - h_hat;
+  // Update w
+  if (error > DAMPING_FACTOR) {
+    set_direction(ElevatorDirection::Up);
+  }
+  if (error < -DAMPING_FACTOR) {
+    set_direction(ElevatorDirection::Down);
+  }
+  // Update inferred height
+  h_hat += (float)DRIVER_RADIUS * a_vel * delta;
+}
+
+void Elevator::set_direction (ElevatorDirection direction) {
+  dir = direction;
+
+  switch (dir) {
+    case ElevatorDirection::Up:
+      a_vel = DRIVER_VELOCITY;
+      sb->set_angle(P_ELEVATOR, ELEVATOR_MAX_ANGLE);
+      break;
+    case ElevatorDirection::Down:
+      a_vel = -DRIVER_VELOCITY;
+      sb->set_angle(P_ELEVATOR, ELEVATOR_MIN_ANGLE);
+      break;
+    case ElevatorDirection::Hold:
+      a_vel = 0;
+      sb->set_angle(P_ELEVATOR, 90);
+      break;
+  }
+}
+
+/**
+ * Grabber
+ */
+void Grabber::setup (ServoBlock* servos) {
+  sb = servos;
+}
+
+void Grabber::set_grip (float grip) {
+  g = clamp(grip, 0.f, 1.f);
+  float angle = map(grip, 0.f, 1.f, (float)GRABBER_MIN_ANGLE, (float)GRABBER_MAX_ANGLE);
+  sb->set_angle(P_GRABBER, (uint32_t)angle);
+}
+
+float Grabber::get_grip () {
+  return g;
+}
+
+bool Grabber::is_gripped () {
+  return g > 0.5f; // TODO: What?
+}
+
+void Grabber::open () {
+  set_grip(0.f);
+}
+
+void Grabber::close () {
+  set_grip(1.f);
+}
+
+void Grabber::toggle () {
+  set_grip(is_gripped() ? 0.f : 1.f);
+}
+/**
  * DSInterface
  */
 void DSInterface::setup () {
-  Serial.begin(57600);
+  Serial.begin(115200);
   while (!Serial);
-  controlState = ControlState::Auto;
-}
-
-bool DSInterface::waitUntilMessageStart (int packetDelay) {
-  while (Serial.available() > 0) {
-    char recv = Serial.peek();
-
-    if (recv != PACKET_START_CHAR) {
-      Serial.read();
-    }
-    else {
-      delay(packetDelay);
-      return true;
-    }
-  }
-
-  return false;
 }
 
 void DSInterface::poll () {
-  // Hold until message, if no message just cancel
-  if (!waitUntilMessageStart(4)) { return; }
-
-  // Scan for valid packets
-  if(Serial.available() >= MIN_UART_MESSAGE_LENGTH) {
-    // Read into buffer
-    int bytes_read = 0;
-    while (Serial.available()) {
-      if (bytes_read >= sizeof(protocolBuffer)) {
-        break;
-      }
-      protocolBuffer[bytes_read++] = Serial.read();
-    }
-
-    // Print current buffer
-    /*for (int j = 0; j < bytes_read; j++) {
-      Serial.print(protocolBuffer[j]);
-      }*/
-
-    // Scan for valid packets
-    int i = 0;
-    while (i < bytes_read) {
-      int bytesRemaining = bytes_read - i;
-      char streamType;
-      int packet_len = 0;
-      if (packet_len = DSProtocol::decodeDSControlPacket(
-            &protocolBuffer[i],
-            bytesRemaining,
-            driverStation.estopped,
-            driverStation.enabled,
-            driverStation.mode,
-            driverStation.switchState
-            )) {
-        // Received DS packet
-      } else if (packet_len = DSProtocol::decodeJoystick1Packet(
-            &protocolBuffer[i],
-            bytesRemaining,
-            driverStation.gamepad1.buttonState,
-            driverStation.gamepad1.axis
-            )) {
-        // Received Joystick 1 packet
-      } else if (packet_len = DSProtocol::decodeJoystick2Packet(
-            &protocolBuffer[i],
-            bytesRemaining,
-            driverStation.gamepad2.buttonState,
-            driverStation.gamepad2.axis
-            )) {
-        // Received Joystick 2 packet
-      }
-
-      if (packet_len > 0) {
-        i += packet_len;
-      } else {
-        i++;
-      }
-    }
-  }
+  new_packet = protocol.process();
 }
 
-ControlState DSInterface::getControlState() { return controlState; }
+float DSInterface::get_first_axis (GamepadAxis axis) {
+  return protocol.getStatus().gamepad1.getAxisFloat(axis);
+}
+
+bool DSInterface::get_first_button (GamepadButton button) {
+  return protocol.getStatus().gamepad1.getButton(button);
+}
+
+float DSInterface::get_second_axis (GamepadAxis axis) {
+  return protocol.getStatus().gamepad2.getAxisFloat(axis);
+}
+
+bool DSInterface::get_second_button (GamepadButton button) {
+  return protocol.getStatus().gamepad2.getButton(button);
+}
 
 /*
  * Drivetrain
