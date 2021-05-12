@@ -197,7 +197,7 @@ class RootTask : public Task {
 
   Autonomous  autonomous;
   Teleop      teleop;
-  //DSPoll      dspoll;
+  DSPoll      dspoll;
   Logger      logger;
 
   RootTask() :

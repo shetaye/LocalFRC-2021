@@ -28,6 +28,18 @@ class Scheduler {
     // Utility
     double time;
     void init();
+
+    Scheduler() :
+      time(0.0) {
+        // NULL initialize running
+        for (int i = 0; i < MAX_TASKS_RUNNING; i++) {
+          running[i] = NULL;
+        }
+        // NULL initialzie subsystms
+        for (int i = 0; i < 8; i++) {
+          subsystems[i] = NULL;
+        }
+      }
   private:
     Task* running[MAX_TASKS_RUNNING];
     Subsystem* subsystems[8];

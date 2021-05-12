@@ -9,7 +9,7 @@
  * RootTask
  */
 bool RootTask::run(Scheduler* scheduler) {
-  // if(dspoll.status == TASK_CREATED) { scheduler->schedule(&dspoll); }
+  if(dspoll.status == TASK_CREATED) { scheduler->schedule(&dspoll); }
   Serial.println("In RootTask::run");
   Serial.println(logger.status);
   Serial.println(logger.id);
@@ -66,7 +66,7 @@ void RootTask::kill(Scheduler* scheduler) {
  * DSPoll
  */
 bool DSPoll::run(Scheduler* scheduler) {
-  scheduler->get_subsystem<DSInterface>(DSINTERFACE_ID)->poll();
+  //scheduler->get_subsystem<DSInterface>(DSINTERFACE_ID)->poll();
   return false;
 }
 
