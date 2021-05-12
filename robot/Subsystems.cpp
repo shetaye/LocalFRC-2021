@@ -24,6 +24,10 @@ void ServoBlock::set_angle (int servo, uint32_t angle) {
   pwm.setPin(servo, pl);
 }
 
+void ServoBlock::set_pulse (int servo, int pulse) {
+  pwm.setPin(servo, pulse);
+}
+
 /**
  * Elevator
  */
@@ -66,15 +70,21 @@ void Elevator::set_direction (ElevatorDirection direction) {
   switch (dir) {
     case ElevatorDirection::Up:
       a_vel = DRIVER_VELOCITY;
-      sb->set_angle(P_ELEVATOR, ELEVATOR_MAX_ANGLE);
+      //sb->set_angle(P_ELEVATOR, ELEVATOR_MAX_ANGLE);
+      sb->set_pulse(P_ELEVATOR_1, 4096);
+      sb->set_pulse(P_ELEVATOR_2, 0);
       break;
     case ElevatorDirection::Down:
       a_vel = -DRIVER_VELOCITY;
-      sb->set_angle(P_ELEVATOR, ELEVATOR_MIN_ANGLE);
+      sb->set_pulse(P_ELEVATOR_1, 0);
+      sb->set_pulse(P_ELEVATOR_2, 4096);
+      //sb->set_angle(P_ELEVATOR, ELEVATOR_MIN_ANGLE);
       break;
     case ElevatorDirection::Hold:
       a_vel = 0;
-      sb->set_angle(P_ELEVATOR, 90);
+      sb->set_pulse(P_ELEVATOR_1, 0);
+      sb->set_pulse(P_ELEVATOR_2, 0);
+      //sb->set_angle(P_ELEVATOR, 90);
       break;
   }
 }
@@ -89,7 +99,8 @@ void Grabber::setup (ServoBlock* servos) {
 void Grabber::set_grip (float grip) {
   g = clamp(grip, 0.f, 1.f);
   float angle = map(grip, 0.f, 1.f, (float)GRABBER_MIN_ANGLE, (float)GRABBER_MAX_ANGLE);
-  sb->set_angle(P_GRABBER, (uint32_t)angle);
+  int iangle = static_cast<int>(angle);
+  sb->set_angle(P_GRABBER, (uint32_t)iangle);
 }
 
 float Grabber::get_grip () {
@@ -101,11 +112,11 @@ bool Grabber::is_gripped () {
 }
 
 void Grabber::open () {
-  set_grip(0.f);
+  set_grip(GRABBER_OPEN);
 }
 
 void Grabber::close () {
-  set_grip(1.f);
+  set_grip(GRABBER_GRAB);
 }
 
 void Grabber::toggle () {
@@ -114,29 +125,21 @@ void Grabber::toggle () {
 /**
  * DSInterface
  */
-void DSInterface::setup () {
-  Serial.begin(115200);
-  while (!Serial);
-}
+void DSInterface::setup () { }
 
 void DSInterface::poll () {
   new_packet = protocol.process();
+  if (new_packet) {
+    enabled = protocol.getStatus().enabled && !protocol.getStatus().estopped;
+  }
 }
 
-float DSInterface::get_first_axis (GamepadAxis axis) {
-  return protocol.getStatus().gamepad1.getAxisFloat(axis);
+float DSInterface::get_axis (GamepadAxis axis) {
+  return protocol.getStatus().gamepad.getAxisFloat(axis);
 }
 
-bool DSInterface::get_first_button (GamepadButton button) {
-  return protocol.getStatus().gamepad1.getButton(button);
-}
-
-float DSInterface::get_second_axis (GamepadAxis axis) {
-  return protocol.getStatus().gamepad2.getAxisFloat(axis);
-}
-
-bool DSInterface::get_second_button (GamepadButton button) {
-  return protocol.getStatus().gamepad2.getButton(button);
+bool DSInterface::get_button (GamepadButton button) {
+  return protocol.getStatus().gamepad.getButton(button);
 }
 
 /*

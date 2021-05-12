@@ -8,6 +8,9 @@
 Scheduler scheduler;
 
 void setup() {
+  Serial.begin(115200);
+  while (!Serial);
+
   // Subsystems
   Drivetrain  drivetrain;
   DSInterface  ds_interface;
@@ -34,19 +37,32 @@ void setup() {
   // Serial.println("Registered Servo Block");
   // Serial.println("Registered subsystems");
   // Start long running tasks
-  DSPoll dspoll;
-  scheduler.schedule(&dspoll);
-  ArcadeDrive arcade_drive;
-  scheduler.schedule(&arcade_drive);
+  //DSPoll dspoll;
+  //scheduler.schedule(&dspoll);
+  //ArcadeDrive arcade_drive;
+  //scheduler.schedule(&arcade_drive);
   //TiltDrive tilt_drive;
   //scheduler.schedule(&tilt_drive);
-  Manipulate manipulate;
-  scheduler.schedule(&manipulate);
+  //Manipulate manipulate;
+  //scheduler.schedule(&manipulate);
   //Drive drive;
   //scheduler.schedule(&drive);
-  Logger logger;
-  scheduler.schedule(&logger);
+  //Logger logger;
+  //scheduler.schedule(&logger);
   // Serial.println("Initialized");
+  RootTask root;
+  Serial.println(root.logger.status);
+  Serial.println(root.logger.id);
+  Serial.println(root.logger.started);
+  Serial.println(root.logger.ellapsed);
+
+  scheduler.schedule(&root);
+
+  Serial.println(root.logger.status);
+  Serial.println(root.logger.id);
+  Serial.println(root.logger.started);
+  Serial.println(root.logger.ellapsed);
+
 }
 
 void loop() {

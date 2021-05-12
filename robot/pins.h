@@ -10,7 +10,8 @@
 #define P_CENTER 4
 #define P_RIGHT 10
 // PWM
-#define P_ELEVATOR 0
-#define P_GRABBER 1
+#define P_ELEVATOR_1 5
+#define P_ELEVATOR_2 4
+#define P_GRABBER 0
 
 

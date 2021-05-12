@@ -17,7 +17,7 @@
  */
 
 // ****** MODIFY YOUR NAME HERE ******
-char ROBOT_NAME[] = "GMEELEGOO";
+char ROBOT_NAME[] = "GMEELEGOO_L";
 
 /*
  * Do not modify this function

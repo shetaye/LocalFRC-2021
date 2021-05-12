@@ -1,0 +1,29 @@
+Forward
+- Line is hit
+- - Turn +90
+- - Forward until TP
+- - Grab
+- - Turn +180
+- TP is hit
+- - Grab
+- - Forward until line
+- - Turn -90
+Forward until wall
+Lift
+Dump
+Turn -90
+Forward until wall
+Drop
+Turn -180
+Forward until line
+
+Turn +90
+Forward until TP
+Turn +180
+Forward until wall
+Lift
+Dump
+Turn -90
+Forward until wall
+Drop
+

@@ -12,17 +12,20 @@
 #define DSINTERFACE_ID 3
 #define ELEVATOR_ID    4
 #define GRABBER_ID     5
+#define FLAP_ID        6
 
 #define DRIVETRAIN  (1 << DRIVETRAIN_ID)
 #define LINETRACKER (1 << LINETRACKER_ID)
 #define DSINTERFACE (1 << DSINTERFACE_ID)
 #define ELEVATOR    (1 << ELEVATOR_ID)
 #define GRABBER     (1 << GRABBER_ID)
+#define FLAP        (1 << FLAP_ID)
 
 class ServoBlock: public Subsystem {
   public:
     void setup     ();
     void set_angle (int servo, uint32_t angle);
+    void set_pulse (int servo, int pulse);
   private:
     Adafruit_PWMServoDriver pwm;
 };
@@ -57,6 +60,8 @@ class Elevator: public Subsystem {
 
 #define GRABBER_MIN_ANGLE 30
 #define GRABBER_MAX_ANGLE 120
+#define GRABBER_GRAB 0.4f
+#define GRABBER_OPEN 0.8f
 class Grabber: public Subsystem {
   public:
     void  setup      (ServoBlock* servos);
@@ -103,14 +108,13 @@ class Linetracker: public Subsystem {
 
 class DSInterface: public Subsystem {
   public:
-    void setup();
-    void poll();
-    float get_first_axis(GamepadAxis axis);
-    bool get_first_button(GamepadButton button);
-    float get_second_axis(GamepadAxis axis);
-    bool get_second_button(GamepadButton button);
+    void  setup();
+    void  poll();
+    float get_axis(GamepadAxis axis);
+    bool  get_button(GamepadButton button);
     DSProtocol protocol;
-    bool new_packet;
+    bool  new_packet;
+    bool  enabled;
 };
 
 #endif
