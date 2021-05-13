@@ -14,7 +14,7 @@ void Scheduler::register_subsystem (Subsystem* subsystem, int sid) {
 int Scheduler::schedule (Task* task) {
   for (int i = 0; i < MAX_TASKS_RUNNING; i++) {
     if (running[i] == NULL) {
-      Serial.print("Running ");
+      Serial.print("Scheduling ");
       Serial.print(i);
       Serial.print(" ");
       Serial.println(task->id);

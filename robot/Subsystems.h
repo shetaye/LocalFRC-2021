@@ -2,6 +2,7 @@
 #include "Scheduler.h"
 #include "DSState.h"
 #include "DSProtocol.h"
+#include "pins.h"
 #include "Adafruit_PWMServoDriver.h"
 
 #ifndef SUBSYSTEMS_H
@@ -21,11 +22,19 @@
 #define GRABBER     (1 << GRABBER_ID)
 #define FLAP        (1 << FLAP_ID)
 
+#define SERVOMIN  120
+#define SERVOMAX  500
+#define SERVO_FREQ 50 // Analog servos run at ~50 Hz updates
 class ServoBlock: public Subsystem {
   public:
-    void setup     ();
     void set_angle (int servo, uint32_t angle);
     void set_pulse (int servo, int pulse);
+    ServoBlock() :
+      pwm() {
+        pwm.begin();
+        pwm.setPWMFreq(SERVO_FREQ);
+        delay(10);
+      }
   private:
     Adafruit_PWMServoDriver pwm;
 };
@@ -42,13 +51,19 @@ enum ElevatorDirection {
 };
 class Elevator: public Subsystem {
   public:
-    void  setup               (ServoBlock* servos);
     void  tick                (float delta);
     void  set_height          (float height);
     float get_height          ();
     float get_error           ();
     float get_inferred_height ();
     void  set_direction (ElevatorDirection direction);
+    Elevator(ServoBlock* servo_block) :
+      h(0.),
+      h_hat(0.),
+      error(0.),
+      a_vel(0.),
+      dir(Hold),
+      sb(servo_block) {}
   private:
     float h;
     float h_hat;
@@ -64,13 +79,15 @@ class Elevator: public Subsystem {
 #define GRABBER_OPEN 0.8f
 class Grabber: public Subsystem {
   public:
-    void  setup      (ServoBlock* servos);
     void  set_grip   (float grip);
     float get_grip   ();
     bool  is_gripped ();
     void  open       ();
     void  close      ();
     void  toggle     ();
+    Grabber(ServoBlock* servo_block) :
+      g(0.),
+      sb(servo_block) {}
   private:
     float g;
     ServoBlock* sb;
@@ -87,34 +104,50 @@ class Grabber: public Subsystem {
 
 class Drivetrain: public Subsystem {
   public:
-    void setup         ();
     void setPower      (double left, double right);
     void setPower      (int side, double power);
+    Drivetrain() {
+      // Init speed
+      pinMode(P_LEFT_SPEED, OUTPUT);
+      pinMode(P_RIGHT_SPEED, OUTPUT);
+      pinMode(P_LEFT_1, OUTPUT);
+      pinMode(P_LEFT_2, OUTPUT);
+      pinMode(P_RIGHT_1, OUTPUT);
+      pinMode(P_RIGHT_2, OUTPUT);
+      setPower(0.0, 0.0);
+    }
   private:
     void setDirection (int side, int direction);
     void setSpeed     (int side, int speed);
-    int speed;
+    //int speed;
 };
 
 class Linetracker: public Subsystem {
   public:
-    void setup  ();
     bool left   ();
     bool center ();
     bool right  ();
     bool all    ();
     bool any    ();
+    Linetracker() {
+      pinMode(P_LEFT, INPUT);
+      pinMode(P_CENTER, INPUT);
+      pinMode(P_RIGHT, INPUT);
+    }
 };
 
 class DSInterface: public Subsystem {
   public:
-    void  setup();
     void  poll();
     float get_axis(GamepadAxis axis);
     bool  get_button(GamepadButton button);
     DSProtocol protocol;
     bool  new_packet;
     bool  enabled;
+    DSInterface() :
+      protocol(),
+      new_packet(false),
+      enabled(false) { }
 };
 
 #endif

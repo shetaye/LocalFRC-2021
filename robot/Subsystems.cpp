@@ -9,16 +9,6 @@
 /**
  * ServoBlock
  */
-#define SERVOMIN  120
-#define SERVOMAX  500
-#define SERVO_FREQ 50 // Analog servos run at ~50 Hz updates
-void ServoBlock::setup () {
-  pwm = Adafruit_PWMServoDriver();
-  pwm.begin();
-  pwm.setPWMFreq(SERVO_FREQ);
-  delay(10);
-}
-
 void ServoBlock::set_angle (int servo, uint32_t angle) {
   uint32_t pl = map(angle, 0, 180, SERVOMIN, SERVOMAX);
   pwm.setPin(servo, pl);
@@ -31,10 +21,6 @@ void ServoBlock::set_pulse (int servo, int pulse) {
 /**
  * Elevator
  */
-void Elevator::setup (ServoBlock* servos) {
-  sb = servos;
-}
-
 void Elevator::set_height (float height) {
 }
 
@@ -92,10 +78,6 @@ void Elevator::set_direction (ElevatorDirection direction) {
 /**
  * Grabber
  */
-void Grabber::setup (ServoBlock* servos) {
-  sb = servos;
-}
-
 void Grabber::set_grip (float grip) {
   g = clamp(grip, 0.f, 1.f);
   float angle = map(grip, 0.f, 1.f, (float)GRABBER_MIN_ANGLE, (float)GRABBER_MAX_ANGLE);
@@ -125,8 +107,6 @@ void Grabber::toggle () {
 /**
  * DSInterface
  */
-void DSInterface::setup () { }
-
 void DSInterface::poll () {
   new_packet = protocol.process();
   if (new_packet) {
@@ -145,18 +125,6 @@ bool DSInterface::get_button (GamepadButton button) {
 /*
  * Drivetrain
  */
-
-void Drivetrain::setup () {
-  // Init speed
-  pinMode(P_LEFT_SPEED, OUTPUT);
-  pinMode(P_RIGHT_SPEED, OUTPUT);
-  pinMode(P_LEFT_1, OUTPUT);
-  pinMode(P_LEFT_2, OUTPUT);
-  pinMode(P_RIGHT_1, OUTPUT);
-  pinMode(P_RIGHT_2, OUTPUT);
-  setPower(0.0, 0.0);
-}
-
 // "Power" is -1.0 to +1.0
 // This is equivalent to the WPILib TankDrive mode
 void Drivetrain::setPower(double left, double right) {
@@ -226,13 +194,6 @@ void Drivetrain::setSpeed(int side, int speed) {
 /*
  * Linetracker
  */
-
-void Linetracker::setup() {
-  pinMode(P_LEFT, INPUT);
-  pinMode(P_CENTER, INPUT);
-  pinMode(P_RIGHT, INPUT);
-}
-
 bool Linetracker::left() {
   return !digitalRead(P_LEFT);
 }

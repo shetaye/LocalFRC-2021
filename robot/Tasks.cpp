@@ -9,13 +9,13 @@
  * RootTask
  */
 bool RootTask::run(Scheduler* scheduler) {
-  if(dspoll.status == TASK_CREATED) { scheduler->schedule(&dspoll); }
   Serial.println("In RootTask::run");
   Serial.println(logger.status);
   Serial.println(logger.id);
-  Serial.println(logger.started);
-  Serial.println(logger.ellapsed);
+
+  if(dspoll.status == TASK_CREATED) { scheduler->schedule(&dspoll); }
   if(logger.status == TASK_CREATED) { scheduler->schedule(&logger); }
+
   return true;
   DSInterface* ds = scheduler->get_subsystem<DSInterface>(DSINTERFACE_ID);
   // Could be more concise if I looked at the tasks instead of maintaining
