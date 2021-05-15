@@ -9,14 +9,9 @@
  * RootTask
  */
 bool RootTask::run(Scheduler* scheduler) {
-  Serial.println("In RootTask::run");
-  Serial.println(logger.status);
-  Serial.println(logger.id);
+  if(poll.status != TASK_RUNNING) { scheduler->schedule(&poll); }
+  if(logger.status != TASK_RUNNING) { scheduler->schedule(&logger); }
 
-  if(dspoll.status == TASK_CREATED) { scheduler->schedule(&dspoll); }
-  if(logger.status == TASK_CREATED) { scheduler->schedule(&logger); }
-
-  return true;
   DSInterface* ds = scheduler->get_subsystem<DSInterface>(DSINTERFACE_ID);
   // Could be more concise if I looked at the tasks instead of maintaining
   // a seperate state i.e. teleop.status == TASK_RUNNING vs mode == Teleoperated
@@ -33,11 +28,12 @@ bool RootTask::run(Scheduler* scheduler) {
       mode = Disabled;
       scheduler->kill(&teleop);
     }
-    else if (last_pressed + 1000 <= scheduler->time && ds->get_button(GamepadButton::Y)) {
+    else if (last_pressed + 1000 <= scheduler->time && ds->get_button(DS_Y)) {
       Serial.println("Switching to auto");
       mode = Auto;
       scheduler->kill(&teleop);
       scheduler->schedule(&autonomous);
+      last_pressed = scheduler->time;
     }
   }
   if (mode == Auto) {
@@ -46,27 +42,33 @@ bool RootTask::run(Scheduler* scheduler) {
       mode = Disabled;
       scheduler->kill(&autonomous);
     }
-    else if (last_pressed + 1000 <= scheduler->time && ds->get_button(GamepadButton::Y)) {
+    else if (last_pressed + 1000 <= scheduler->time && ds->get_button(DS_Y)) {
       Serial.println("Switching to teleop");
       mode = Teleoperated;
       scheduler->kill(&autonomous);
       scheduler->schedule(&teleop);
+      last_pressed = scheduler->time;
     }
   }
   return false;
 }
 void RootTask::kill(Scheduler* scheduler) {
-  //scheduler->kill(&dspoll);
+  scheduler->kill(&poll);
   scheduler->kill(&logger);
   if (teleop.status == TASK_RUNNING) { scheduler->kill(&teleop); }
   if (autonomous.status == TASK_RUNNING) { scheduler->kill(&autonomous); }
 }
 
 /**
- * DSPoll
+ * Poll
  */
-bool DSPoll::run(Scheduler* scheduler) {
-  //scheduler->get_subsystem<DSInterface>(DSINTERFACE_ID)->poll();
+bool Poll::run(Scheduler* scheduler) {
+  double d = (scheduler->time - last_poll) / 1000;
+  scheduler->get_subsystem<DSInterface>(DSINTERFACE_ID)->poll();
+  scheduler->get_subsystem<Elevator>(ELEVATOR_ID)->tick((float)d);
+  scheduler->get_subsystem<Ultrasonic>(ULTRASONIC_ID)->ping();
+  //scheduler->get_subsystem<Mpu>(MPU_ID)->poll((float)d);
+  last_poll = scheduler->time;
   return false;
 }
 
@@ -75,11 +77,16 @@ bool DSPoll::run(Scheduler* scheduler) {
  */
 bool Logger::run(Scheduler* scheduler) {
   if (last_message + 1000 <= scheduler->time) {
-    Serial.print("LT: ");
+    DSInterface* ds = scheduler->get_subsystem<DSInterface>(DSINTERFACE_ID);
     Linetracker* linetracker = scheduler->get_subsystem<Linetracker>(LINETRACKER_ID);
-    Serial.print(linetracker->left());
-    Serial.print(linetracker->center());
-    Serial.println(linetracker->right());
+    Elevator* elevator = scheduler->get_subsystem<Elevator>(ELEVATOR_ID);
+    Ultrasonic* ultrasonic = scheduler->get_subsystem<Ultrasonic>(ULTRASONIC_ID);
+    //Serial.print("H ");
+    //Serial.println(elevator->get_inferred_height());
+    //Serial.print("U ");
+    //Serial.println(ultrasonic->distance);
+    //Serial.println(scheduler->get_subsystem<DSInterface>(DSINTERFACE_ID)->protocol.getStatus().gamepad.buttonState);
+    Serial.println(linetracker->any());
     last_message = scheduler->time;
   }
   return false;

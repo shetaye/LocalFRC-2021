@@ -15,9 +15,9 @@ int Scheduler::schedule (Task* task) {
   for (int i = 0; i < MAX_TASKS_RUNNING; i++) {
     if (running[i] == NULL) {
       Serial.print("Scheduling ");
-      Serial.print(i);
-      Serial.print(" ");
-      Serial.println(task->id);
+      Serial.print(task->id);
+      Serial.print("@");
+      Serial.println(i);
       task->index=i;
       task->status=TASK_RUNNING;
       task->started=millis();
@@ -31,6 +31,11 @@ int Scheduler::schedule (Task* task) {
 void Scheduler::kill (Task* task) {
   if (task->status != TASK_RUNNING) { return; }
   int tidx = task->index;
+
+  Serial.print("Killing ");
+  Serial.print(task->id);
+  Serial.print("@");
+  Serial.println(tidx);
   if (running[tidx] != NULL) {
     running[tidx]->kill(this);
     running[tidx]->status = TASK_KILLED;

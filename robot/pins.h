@@ -13,5 +13,13 @@
 #define P_ELEVATOR_1 5
 #define P_ELEVATOR_2 4
 #define P_GRABBER 0
+#define P_WRIST_1 8
+#define P_WRIST_2 9
+// Ultrasonic
+#define P_UTRIG A0
+#define P_UECHO A2
+// MPU
+#define P_INTERRUPT 2
+// Wrist
 
 

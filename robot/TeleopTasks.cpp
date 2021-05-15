@@ -5,8 +5,8 @@
 #include "util.h"
 
 bool Teleop::run(Scheduler* scheduler) {
-  if (arcade.status == TASK_CREATED) { scheduler->schedule(&arcade); }
-  if (manipulate.status == TASK_CREATED) { scheduler->schedule(&manipulate); }
+  if (arcade.status != TASK_RUNNING) { scheduler->schedule(&arcade); }
+  if (manipulate.status != TASK_RUNNING) { scheduler->schedule(&manipulate); }
   return false;
 }
 void Teleop::kill(Scheduler* scheduler) {
@@ -19,9 +19,9 @@ void Teleop::kill(Scheduler* scheduler) {
  */
 bool Manipulate::run(Scheduler* scheduler) {
   DSInterface* ds = scheduler->get_subsystem<DSInterface>(DSINTERFACE_ID);
-  Elevator* elevator = scheduler->get_subsystem<Elevator>(ELEVATOR_ID);
-  Grabber* grabber = scheduler->get_subsystem<Grabber>(GRABBER_ID);
 
+  // Grabber
+  Grabber* grabber = scheduler->get_subsystem<Grabber>(GRABBER_ID);
   float grip_axis = ds->get_axis(2);
   if (grip_axis > 0.5) {
     grabber->open();
@@ -29,14 +29,11 @@ bool Manipulate::run(Scheduler* scheduler) {
   if (grip_axis < -0.5) {
     grabber->close();
   }
-  else {
-    // Nothing
-  }
 
-  // Move elevator around
-  //float elevator_axis = ds->get_axis(3);
-  bool up = ds->get_button(GamepadButton::B);
-  bool down = ds->get_button(GamepadButton::A);
+  // Elevator
+  Elevator* elevator = scheduler->get_subsystem<Elevator>(ELEVATOR_ID);
+  bool up   = ds->get_button(DS_L_BUMPER);
+  bool down = ds->get_button(DS_R_BUMPER);
   if (up && !down) {
     elevator->set_direction(ElevatorDirection::Up);
   }
@@ -45,6 +42,20 @@ bool Manipulate::run(Scheduler* scheduler) {
   } else {
     elevator->set_direction(ElevatorDirection::Hold);
   }
+
+  // Wrist
+  Wrist* wrist = scheduler->get_subsystem<Wrist>(WRIST_ID);
+  float wrist_axis = ds->get_axis(3); // ???
+  if (wrist_axis > 0.5) {
+    wrist->up();
+  }
+  if (wrist_axis < -0.5) {
+    wrist->down();
+  }
+  else {
+    wrist->hold();
+  }
+
   return false;
 }
 
@@ -125,4 +136,7 @@ bool ArcadeDrive::run(Scheduler* scheduler) {
 
   scheduler->get_subsystem<Drivetrain>(DRIVETRAIN_ID)->setPower(left, right);
   return false; // Never done
+}
+void ArcadeDrive::kill (Scheduler* scheduler) {
+  scheduler->get_subsystem<Drivetrain>(DRIVETRAIN_ID)->setPower(0., 0.);
 }

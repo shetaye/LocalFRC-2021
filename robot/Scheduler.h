@@ -25,6 +25,7 @@ class Scheduler {
     void       register_subsystem (Subsystem*, int);
     template <class T>
       T* get_subsystem            (int);
+
     // Utility
     double time;
     void init();
@@ -42,7 +43,7 @@ class Scheduler {
       }
   private:
     Task* running[MAX_TASKS_RUNNING];
-    Subsystem* subsystems[8];
+    Subsystem* subsystems[16];
 };
 
 class Task {
