@@ -67,7 +67,7 @@ bool Poll::run(Scheduler* scheduler) {
   scheduler->get_subsystem<DSInterface>(DSINTERFACE_ID)->poll();
   scheduler->get_subsystem<Elevator>(ELEVATOR_ID)->tick((float)d);
   scheduler->get_subsystem<Ultrasonic>(ULTRASONIC_ID)->ping();
-  //scheduler->get_subsystem<Mpu>(MPU_ID)->poll((float)d);
+  scheduler->get_subsystem<Mpu>(MPU_ID)->check_fifo();
   last_poll = scheduler->time;
   return false;
 }
@@ -81,12 +81,13 @@ bool Logger::run(Scheduler* scheduler) {
     Linetracker* linetracker = scheduler->get_subsystem<Linetracker>(LINETRACKER_ID);
     Elevator* elevator = scheduler->get_subsystem<Elevator>(ELEVATOR_ID);
     Ultrasonic* ultrasonic = scheduler->get_subsystem<Ultrasonic>(ULTRASONIC_ID);
+    Mpu* mpu = scheduler->get_subsystem<Mpu>(MPU_ID);
     //Serial.print("H ");
     //Serial.println(elevator->get_inferred_height());
     //Serial.print("U ");
     //Serial.println(ultrasonic->distance);
     //Serial.println(scheduler->get_subsystem<DSInterface>(DSINTERFACE_ID)->protocol.getStatus().gamepad.buttonState);
-    Serial.println(linetracker->any());
+    //Serial.println(linetracker->any());
     last_message = scheduler->time;
   }
   return false;

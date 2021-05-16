@@ -2,15 +2,18 @@
 #define SUBSYSTEMS_H
 
 #include <stdint.h>
-#include "I2Cdev.h"
+
 #include "Scheduler.h"
+#include "pins.h"
+
+#include "Adafruit_PWMServoDriver.h"
+
 #include "DSState.h"
 #include "DSProtocol.h"
-#include "pins.h"
-#include "Adafruit_PWMServoDriver.h"
-#include "MPU6050.h"
-#include "Wire.h"
 
+#include "Wire.h"
+#include "I2Cdev.h"
+#include "util.h"
 
 #define DRIVETRAIN_ID  1
 #define LINETRACKER_ID 2
@@ -192,65 +195,105 @@ class Ultrasonic: public Subsystem {
       }
 };
 
+//
 #define MPU_X_GYRO_OFFSET 36
 #define MPU_Y_GYRO_OFFSET -34
 #define MPU_Z_GYRO_OFFSET -17
 #define MPU_X_ACCL_OFFSET 1261
 #define MPU_Y_ACCL_OFFSET 1759
 #define MPU_Z_ACCL_OFFSET 1255
+#define OFFSETS MPU_X_ACCL_OFFSET, MPU_Y_ACCL_OFFSET, MPU_Z_ACCL_OFFSET, MPU_X_GYRO_OFFSET, MPU_Y_GYRO_OFFSET, MPU_Z_GYRO_OFFSET
+#define MPU6050_ADDRESS 0x68 // Default
+#define DMP_CHUNK_SIZE 16
+#define DMP_PACKET_LENGTH 28
+#define MAX_PACKET_LENGTH 32
 #define MPU_DEADZONE 100
 #define MPU_EMA
 #define MPU_EMA_SAMPLES 5
 #define MPU_EMA_SMOOTHING 2
 class Mpu: public Subsystem {
   public:
-    void poll(float);
-    void zero();
-    MPU6050 mpu;
+    // I2C
+    uint8_t dev_addr;
+    int8_t MPUi2cRead       (uint8_t addr, uint8_t length, uint8_t n_bits, uint8_t* data);
+    int8_t MPUi2cRead       (uint8_t alt_addr, uint8_t addr, uint8_t length, uint8_t n_bits, uint8_t* data);
+    int8_t MPUi2cReadByte   (uint8_t addr, uint8_t* data);
+    int8_t MPUi2cReadByte   (uint8_t alt_addr, uint8_t addr, uint8_t* data);
+    int8_t MPUi2cReadBytes  (uint8_t addr, uint8_t len, uint8_t* data);
+    int8_t MPUi2cReadBytes  (uint8_t alt_addr, uint8_t addr, uint8_t len, uint8_t* data);
+    int8_t MPUi2cReadInt    (uint8_t addr, uint16_t* data);
+    int8_t MPUi2cReadInt    (uint8_t alt_addr, uint8_t addr, uint16_t* data);
+    int8_t MPUi2cReadInts   (uint8_t addr, uint16_t n_words, uint16_t* data);
+    int8_t MPUi2cReadInts   (uint8_t alt_addr, uint8_t addr, uint16_t n_words, uint16_t* data);
+    int8_t MPUi2cWrite      (uint8_t addr, uint8_t length, uint8_t n_bits, uint8_t data);
+    int8_t MPUi2cWrite      (uint8_t alt_addr, uint8_t addr, uint8_t length, uint8_t n_bits, uint8_t data);
+    int8_t MPUi2cWriteByte  (uint8_t addr, uint8_t data);
+    int8_t MPUi2cWriteByte  (uint8_t alt_addr, uint8_t addr, uint8_t data);
+    int8_t MPUi2cWriteBytes (uint8_t addr, uint8_t length, uint8_t* data);
+    int8_t MPUi2cWriteBytes (uint8_t alt_addr, uint8_t addr, uint8_t length, uint8_t* data);
+    int8_t MPUi2cWriteInt   (uint8_t addr, uint16_t data);
+    int8_t MPUi2cWriteInt   (uint8_t alt_addr, uint8_t addr, uint16_t data);
+    int8_t MPUi2cWriteInts  (uint8_t addr, uint16_t n_words, uint16_t* data);
+    int8_t MPUi2cWriteInts  (uint8_t alt_addr, uint8_t addr, uint16_t n_words, uint16_t* data);
 
-    float p_ax, p_ay, p_az;
-    float p_vx, p_vy, p_vz;
-    float p_x, p_y, p_z;
+    // Connection
+    bool test_connection_status();
 
-    float g_ax, g_ay, g_az;
-    float g_vx, g_vy, g_vz;
-    float g_x, g_y, g_z;
+    // MPU interrupts
+    bool*    mpu_int;      // Volatile
+    uint8_t  check_int (); // Nonvolatile check
 
-    Mpu():
-      p_ax(0),
-      p_ay(0),
-      p_az(0),
-      p_vx(0.f),
-      p_vy(0.f),
-      p_vz(0.f),
-      p_x(0.f),
-      p_y(0.f),
-      p_z(0.f),
-      g_ax(0),
-      g_ay(0),
-      g_az(0),
-      g_vx(0.f),
-      g_vy(0.f),
-      g_vz(0.f),
-      g_x(0.f),
-      g_y(0.f),
-      g_z(0.f) {
-        Wire.begin();
+    // MPU memory
+    void read_memory(uint16_t addr, uint16_t n_bytes, uint8_t* data);
+    void write_memory(uint16_t addr, uint16_t n_bytes, uint8_t* data);
 
-        mpu.initialize();
-        Serial.println(mpu.testConnection() ? "MPU connected" : "Could not connect to MPU!");
+    // DMP programming
+    bool  dmp_ready;
+    bool  dmp_loaded;
+    bool  prog_dmp     (const uint8_t* prog, uint16_t n_bytes);
+    bool  load_offsets ();
+    void  init_dmp     ();
 
-        mpu.setXGyroOffset(MPU_X_GYRO_OFFSET);
-        mpu.setYGyroOffset(MPU_Y_GYRO_OFFSET);
-        mpu.setZGyroOffset(MPU_Z_GYRO_OFFSET);
-        mpu.setXAccelOffset(MPU_X_ACCL_OFFSET);
-        mpu.setYAccelOffset(MPU_Y_ACCL_OFFSET);
-        mpu.setZAccelOffset(MPU_Z_ACCL_OFFSET);
+    // DMP config
+    int16_t xa_offset;
+    int16_t ya_offset;
+    int16_t za_offset;
+    int16_t xg_offset;
+    int16_t yg_offset;
+    int16_t zg_offset;
 
-        mpu.CalibrateAccel(6);
-        mpu.CalibrateGyro(6);
-        mpu.PrintActiveOffsets();
-      }
+    // FIFO
+    uint8_t fifo_packet[MAX_PACKET_LENGTH];
+    int16_t get_fifo_count  ();
+    int8_t  get_fifo_packet (uint8_t* data);
+    void    check_fifo      (); // Checks interrupt, reads if there is data
+
+
+    // Intermediary data
+    int16_t gyro[3];
+    int16_t accel[3];
+    float   mag[3];
+    int32_t quat[4];
+
+    // Orientation
+    Quaternion  q;
+    VectorInt16 aa;
+    VectorInt16 gy;
+    VectorInt16 aaReal;
+    VectorInt16 aaWorld;
+    VectorFloat gravity;
+    float euler[3];
+    float ypr[3];
+
+    Mpu(bool* i) :
+      dev_addr(MPU6050_ADDRESS),
+      mpu_int(i),
+      xa_offset(MPU_X_ACCL_OFFSET),
+      ya_offset(MPU_Y_ACCL_OFFSET),
+      za_offset(MPU_Z_ACCL_OFFSET),
+      xg_offset(MPU_X_GYRO_OFFSET),
+      yg_offset(MPU_Y_GYRO_OFFSET),
+      zg_offset(MPU_Z_GYRO_OFFSET) {}
 };
 
 #endif
