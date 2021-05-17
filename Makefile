@@ -3,8 +3,8 @@ BUILD_DIR=_build
 BUILD_PATH=$(PWD)/$(BUILD_DIR)
 SOURCE_DIR=robot
 SOURCE_PATH=$(PWD)/$(SOURCE_DIR)
-BOARD_TYPE=arduino:avr:uno
-	SERIAL_PORT=/dev/tty.usbmodem00001
+BOARD_TYPE=arduino:avr:mega
+	SERIAL_PORT=/dev/cu.usbmodem1411401
 
 .PHONY: all build program clean
 

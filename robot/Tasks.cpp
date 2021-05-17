@@ -17,19 +17,19 @@ bool RootTask::run(Scheduler* scheduler) {
   // a seperate state i.e. teleop.status == TASK_RUNNING vs mode == Teleoperated
   if (mode == Disabled) {
     if (ds->enabled) {
-      Serial.println("Enabled");
+      Serial.println(F("Enabled"));
       mode = Teleoperated;
       scheduler->schedule(&teleop);
     }
   }
   if (mode == Teleoperated) {
     if (!ds->enabled) {
-      Serial.println("Disabled");
+      Serial.println(F("Disabled"));
       mode = Disabled;
       scheduler->kill(&teleop);
     }
     else if (last_pressed + 1000 <= scheduler->time && ds->get_button(DS_Y)) {
-      Serial.println("Switching to auto");
+      Serial.println(F("Switching to auto"));
       mode = Auto;
       scheduler->kill(&teleop);
       scheduler->schedule(&autonomous);
@@ -38,12 +38,12 @@ bool RootTask::run(Scheduler* scheduler) {
   }
   if (mode == Auto) {
     if (!ds->enabled) {
-      Serial.println("Disabled");
+      Serial.println(F("Disabled"));
       mode = Disabled;
       scheduler->kill(&autonomous);
     }
     else if (last_pressed + 1000 <= scheduler->time && ds->get_button(DS_Y)) {
-      Serial.println("Switching to teleop");
+      Serial.println(F("Switching to teleop"));
       mode = Teleoperated;
       scheduler->kill(&autonomous);
       scheduler->schedule(&teleop);
@@ -67,7 +67,6 @@ bool Poll::run(Scheduler* scheduler) {
   scheduler->get_subsystem<DSInterface>(DSINTERFACE_ID)->poll();
   scheduler->get_subsystem<Elevator>(ELEVATOR_ID)->tick((float)d);
   scheduler->get_subsystem<Ultrasonic>(ULTRASONIC_ID)->ping();
-  scheduler->get_subsystem<Mpu>(MPU_ID)->check_fifo();
   last_poll = scheduler->time;
   return false;
 }
@@ -77,11 +76,12 @@ bool Poll::run(Scheduler* scheduler) {
  */
 bool Logger::run(Scheduler* scheduler) {
   if (last_message + 1000 <= scheduler->time) {
-    DSInterface* ds = scheduler->get_subsystem<DSInterface>(DSINTERFACE_ID);
-    Linetracker* linetracker = scheduler->get_subsystem<Linetracker>(LINETRACKER_ID);
-    Elevator* elevator = scheduler->get_subsystem<Elevator>(ELEVATOR_ID);
-    Ultrasonic* ultrasonic = scheduler->get_subsystem<Ultrasonic>(ULTRASONIC_ID);
+    /*DSInterface* ds = scheduler->get_subsystem<DSInterface>(DSINTERFACE_ID);
+      Linetracker* linetracker = scheduler->get_subsystem<Linetracker>(LINETRACKER_ID);
+      Elevator* elevator = scheduler->get_subsystem<Elevator>(ELEVATOR_ID);
+      Ultrasonic* ultrasonic = scheduler->get_subsystem<Ultrasonic>(ULTRASONIC_ID);*/
     Mpu* mpu = scheduler->get_subsystem<Mpu>(MPU_ID);
+    Serial.println(mpu->ypr[0]);
     //Serial.print("H ");
     //Serial.println(elevator->get_inferred_height());
     //Serial.print("U ");

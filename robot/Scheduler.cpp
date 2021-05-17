@@ -14,9 +14,9 @@ void Scheduler::register_subsystem (Subsystem* subsystem, int sid) {
 int Scheduler::schedule (Task* task) {
   for (int i = 0; i < MAX_TASKS_RUNNING; i++) {
     if (running[i] == NULL) {
-      Serial.print("Scheduling ");
+      Serial.print(F("Scheduling "));
       Serial.print(task->id);
-      Serial.print("@");
+      Serial.print(F("@"));
       Serial.println(i);
       task->index=i;
       task->status=TASK_RUNNING;
@@ -32,9 +32,9 @@ void Scheduler::kill (Task* task) {
   if (task->status != TASK_RUNNING) { return; }
   int tidx = task->index;
 
-  Serial.print("Killing ");
+  Serial.print(F("Killing "));
   Serial.print(task->id);
-  Serial.print("@");
+  Serial.print(F("@"));
   Serial.println(tidx);
   if (running[tidx] != NULL) {
     running[tidx]->kill(this);
@@ -55,9 +55,9 @@ void Scheduler::run () {
       task->ellapsed = millis() - task->started;
       bool done = task->run(this);
       if (done) {
-        Serial.print("Finished ");
+        Serial.print(F("Finished "));
         Serial.print(task->id);
-        Serial.print("@");
+        Serial.print(F("@"));
         Serial.println(task->index);
         task->status = TASK_FINISHED;
         running[i] = NULL;
