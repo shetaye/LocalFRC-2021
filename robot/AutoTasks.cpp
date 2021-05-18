@@ -8,16 +8,6 @@
  */
 
 bool Autonomous::run(Scheduler* scheduler) {
-  /*Drivetrain* dt = scheduler->get_subsystem<Drivetrain>(DRIVETRAIN_ID);
-    if(start_time == -1) {
-    start_time = scheduler->time;
-    dt->setPower(APPROACH_SPEED, APPROACH_SPEED);
-    return false;
-    } else if (start_time + 3000 <= scheduler->time) {
-    dt->setPower(0., 0.);
-    return true;
-    }
-    else { return false; }*/
   switch(step) {
     case SETUPZeroElevator:
       if (SETUP_zero_elevator.status == TASK_CREATED) { scheduler->schedule(&SETUP_zero_elevator); }
@@ -204,7 +194,6 @@ bool ZeroElevator::run(Scheduler* scheduler) {
   Elevator* elevator = scheduler->get_subsystem<Elevator>(ELEVATOR_ID);
   if (start_time == -1.0) {
     start_time = scheduler->time;
-    Serial.println("Down");
     elevator->set_direction(Down);
   }
   else if (start_time + zero_time <= scheduler->time) {
@@ -230,6 +219,8 @@ bool ForwardUntil::run(Scheduler* scheduler) {
   obstacle = ul->distance <= stop_distance;
   line = lt->any();
   hit = obstacle || line;
+
+  Serial.println(line);
 
   bool should_stop = (stop_at_obstacle && obstacle) || (stop_at_line && line);
 
@@ -275,19 +266,26 @@ bool DumpHex::run(Scheduler* scheduler) { return true; }
 
 bool Turn::run(Scheduler* scheduler) {
   Drivetrain* dt = scheduler->get_subsystem<Drivetrain>(DRIVETRAIN_ID);
-  if (start_time == -1) {
-    start_time = scheduler->time;
-    run_time = ((DRIVETRAIN_AXLE_LENGTH * angle) / (2 * DRIVETRAIN_VELOCITY)) * 1000;
-    if (angle < 0) {
-      dt->setPower(APPROACH_SPEED, -APPROACH_SPEED);
+  Mpu* mpu = scheduler->get_subsystem<Mpu>(MPU_ID);
+
+  if (!started) {
+    float start_angle = mpu->ypr[0];
+    end_angle = start_angle + angle;
+    if(abs(end_angle) > M_PI) {
+      // Correct the wrap around
+      float wrap_around = abs(end_angle) - M_PI;
+      if( start_angle > 0) { end_angle = -M_PI + wrap_around; }
+      else { end_angle = M_PI - wrap_around; }
     }
-    else {
-      dt->setPower(-APPROACH_SPEED, APPROACH_SPEED);
-    }
+    if (angle > 0) { dt->setPower(-APPROACH_SPEED, APPROACH_SPEED); }
+    else { dt->setPower(APPROACH_SPEED, -APPROACH_SPEED); }
   }
-  else if (start_time + run_time <= scheduler->time) {
-    dt->setPower(0., 0.);
-    return true;
+  else {
+    float error = mpu->ypr[0];
+    if (abs(error) < TURN_ERROR_MARGIN) {
+      dt->setPower(0., 0.);
+      return true;
+    }
   }
   return false;
 }

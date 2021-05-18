@@ -12,12 +12,18 @@
  */
 void ServoBlock::set_angle (int servo, uint32_t angle) {
   uint32_t pl = map(angle, 0, 180, SERVOMIN, SERVOMAX);
-  pwm->setPin(servo, pl);
+  pwm.setPin(servo, pl);
 }
 
 void ServoBlock::set_pulse (int servo, int pulse) {
   int pl = clamp(pulse, SERVOMIN, SERVOMAX);
-  pwm->setPin(servo, pl);
+  pwm.setPin(servo, pl);
+}
+
+void ServoBlock::begin () {
+  pwm.begin();
+  pwm.setPWMFreq(SERVO_FREQ);
+  delay(10);
 }
 
 /**
@@ -43,19 +49,19 @@ void Elevator::set_direction (ElevatorDirection direction) {
     case ElevatorDirection::Up:
       a_vel = DRIVER_VELOCITY;
       //sb->set_angle(P_ELEVATOR, ELEVATOR_MAX_ANGLE);
-      sb->pwm->setPin(P_ELEVATOR_1, 4096);
-      sb->pwm->setPin(P_ELEVATOR_2, 0);
+      sb->pwm.setPin(P_ELEVATOR_1, 4096);
+      sb->pwm.setPin(P_ELEVATOR_2, 0);
       break;
     case ElevatorDirection::Down:
       a_vel = -DRIVER_VELOCITY;
-      sb->pwm->setPin(P_ELEVATOR_1, 0);
-      sb->pwm->setPin(P_ELEVATOR_2, 4096);
+      sb->pwm.setPin(P_ELEVATOR_1, 0);
+      sb->pwm.setPin(P_ELEVATOR_2, 4096);
       //sb->set_angle(P_ELEVATOR, ELEVATOR_MIN_ANGLE);
       break;
     case ElevatorDirection::Hold:
       a_vel = 0;
-      sb->pwm->setPin(P_ELEVATOR_1, 0);
-      sb->pwm->setPin(P_ELEVATOR_2, 0);
+      sb->pwm.setPin(P_ELEVATOR_1, 0);
+      sb->pwm.setPin(P_ELEVATOR_2, 0);
       //sb->set_angle(P_ELEVATOR, 90);
       break;
   }
@@ -74,6 +80,11 @@ void Ultrasonic::ping () {
 
   float duration = pulseIn(P_UECHO, HIGH);
   distance = duration / 29 / 2;
+}
+
+void Ultrasonic::begin () {
+  pinMode(P_UTRIG, OUTPUT);
+  pinMode(P_UECHO, INPUT);
 }
 
 /**
@@ -157,6 +168,15 @@ bool DSInterface::get_button (int button) {
 /*
  * Drivetrain
  */
+void Drivetrain::begin() {
+  pinMode(P_LEFT_SPEED, OUTPUT);
+  pinMode(P_RIGHT_SPEED, OUTPUT);
+  pinMode(P_LEFT_1, OUTPUT);
+  pinMode(P_LEFT_2, OUTPUT);
+  pinMode(P_RIGHT_1, OUTPUT);
+  pinMode(P_RIGHT_2, OUTPUT);
+  setPower(0.0, 0.0);
+}
 // "Power" is -1.0 to +1.0
 // This is equivalent to the WPILib TankDrive mode
 void Drivetrain::setPower(double left, double right) {
@@ -246,6 +266,48 @@ bool Linetracker::any() {
   return left() || right() || center();
 }
 
+void Linetracker::begin() {
+  pinMode(P_LEFT, INPUT);
+  pinMode(P_CENTER, INPUT);
+  pinMode(P_RIGHT, INPUT);
+}
+
 /**
  * MPU
  */
+void Mpu::poll() {
+  if (!dmp_ready) return;
+  if (mpu.dmpGetCurrentFIFOPacket(fifo_buffer)) {
+    mpu.dmpGetQuaternion(&q, fifo_buffer);
+    mpu.dmpGetEuler(euler, &q);
+    mpu.dmpGetGravity(&gravity, &q);
+    mpu.dmpGetYawPitchRoll(ypr, &q, &gravity);
+    mpu.dmpGetAccel(&aa, fifo_buffer);
+    mpu.dmpGetLinearAccel(&aaReal, &aa, &gravity);
+    mpu.dmpGetLinearAccelInWorld(&aaWorld, &aaReal, &q);
+  }
+}
+void Mpu::begin() {
+  // Zero FIFO
+  for (uint8_t i = 0; i < 64; i++) { fifo_buffer[i] = 0; }
+
+  mpu.initialize();
+  uint8_t device_status = mpu.dmpInitialize();
+  if (device_status == 0)  {
+    mpu.setXGyroOffset(MPU_X_GYRO_OFFSET);
+    mpu.setYGyroOffset(MPU_Y_GYRO_OFFSET);
+    mpu.setZGyroOffset(MPU_Z_GYRO_OFFSET);
+    mpu.setXAccelOffset(MPU_X_ACCL_OFFSET);
+    mpu.setYAccelOffset(MPU_Y_ACCL_OFFSET);
+    mpu.setZAccelOffset(MPU_Z_ACCL_OFFSET);
+
+    mpu.setDMPEnabled(true);
+
+    dmp_ready = true;
+  } else {
+    Serial.print("DMP Initialization failed (code ");
+    Serial.print(device_status);
+    Serial.println(")");
+  }
+}
+

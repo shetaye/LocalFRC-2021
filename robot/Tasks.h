@@ -143,10 +143,11 @@ class DumpHex : public Task {
   DumpHex(): Task(DUMP_HEX) {}
 };
 
+#define TURN_ERROR_MARGIN M_PI / 16.f
 class Turn : public Task {
   float angle; // rad
-  double run_time;
-  double start_time;
+  bool  started;
+  float end_angle;
 
   bool run (Scheduler*);
   void kill (Scheduler*);
@@ -155,7 +156,7 @@ class Turn : public Task {
   Turn(float r):
     Task(TURN),
     angle(r),
-    start_time(-1) {}
+    started(false) {}
 };
 
 class Forward : public Task {

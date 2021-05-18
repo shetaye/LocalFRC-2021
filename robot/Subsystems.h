@@ -7,6 +7,7 @@
 #include "pins.h"
 
 #include "Adafruit_PWMServoDriver.h"
+#include "MPU6050_6Axis_MotionApps_V6_12.h"
 
 #include "DSState.h"
 #include "DSProtocol.h"
@@ -40,10 +41,8 @@ class ServoBlock: public Subsystem {
   public:
     void set_angle (int servo, uint32_t angle);
     void set_pulse (int servo, int pulse);
-    Adafruit_PWMServoDriver* pwm;
-
-    ServoBlock(Adafruit_PWMServoDriver* p) :
-      pwm(p) {}
+    void begin     ();
+    Adafruit_PWMServoDriver pwm;
 };
 
 #define DRIVER_RADIUS 1.f
@@ -126,20 +125,10 @@ class Drivetrain: public Subsystem {
   public:
     void setPower      (double left, double right);
     void setPower      (int side, double power);
-    Drivetrain() {
-      // Init speed
-      pinMode(P_LEFT_SPEED, OUTPUT);
-      pinMode(P_RIGHT_SPEED, OUTPUT);
-      pinMode(P_LEFT_1, OUTPUT);
-      pinMode(P_LEFT_2, OUTPUT);
-      pinMode(P_RIGHT_1, OUTPUT);
-      pinMode(P_RIGHT_2, OUTPUT);
-      setPower(0.0, 0.0);
-    }
+    void begin         ();
   private:
     void setDirection (int side, int direction);
     void setSpeed     (int side, int speed);
-    //int speed;
 };
 
 class Linetracker: public Subsystem {
@@ -149,11 +138,7 @@ class Linetracker: public Subsystem {
     bool right  ();
     bool all    ();
     bool any    ();
-    Linetracker() {
-      pinMode(P_LEFT, INPUT);
-      pinMode(P_CENTER, INPUT);
-      pinMode(P_RIGHT, INPUT);
-    }
+    void begin  ();
 };
 
 #define DS_L_BUMPER 64
@@ -182,12 +167,9 @@ class DSInterface: public Subsystem {
 class Ultrasonic: public Subsystem {
   public:
     void  ping();
+    void  begin();
     float distance;
-    Ultrasonic() :
-      distance(0.f) {
-        pinMode(P_UTRIG, OUTPUT);
-        pinMode(P_UECHO, INPUT);
-      }
+    Ultrasonic() : distance(0.f) { }
 };
 
 //
@@ -198,8 +180,14 @@ class Ultrasonic: public Subsystem {
 #define MPU_Y_ACCL_OFFSET 1759
 #define MPU_Z_ACCL_OFFSET 1255
 class Mpu: public Subsystem {
+  private:
+    // MPU stuff
+    MPU6050 mpu;
+    uint8_t fifo_buffer[64];
   public:
-    void poll ();
+    bool dmp_ready;
+    void poll  ();
+    void begin ();
 
     // Orientation
     Quaternion  q;
@@ -210,6 +198,8 @@ class Mpu: public Subsystem {
     VectorFloat gravity;
     float euler[3];
     float ypr[3];
+
+    Mpu() : dmp_ready(false) { }
 };
 
 #endif
